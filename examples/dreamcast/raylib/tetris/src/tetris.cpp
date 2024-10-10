@@ -9,8 +9,7 @@
 #include <kos/init.h>
 #include <kos/dbgio.h>
 #include <dc/sound/stream.h>
-#include <adx/adx.h> 
-#include <adx/snddrv.h> 
+#include <wav/sndwav.h>
 
 double lastUpdateTime = 0;
 
@@ -23,23 +22,12 @@ bool EventTriggered(double interval){
     return false;
 }
 
-
-// Find a better way to do this
-void setVolume(){
-    while( snddrv.drv_status != SNDDRV_STATUS_STREAMING ){
-        thd_pass(); 
-    }
-    for (int i = 0; i < 8; i++){
-        snddrv_volume_down();
-    }
-}
-
-KOS_INIT_FLAGS(INIT_DEFAULT);
 cd cdManager = cd();
 
 int main(){
     const int screenWidth = 640;
     const int screenHeight = 480;
+    wav_stream_hnd_t bgm;
 
     InitWindow(screenWidth, screenHeight, "Tetris in KOS!");
     SetTargetFPS(60);
@@ -49,15 +37,12 @@ int main(){
 
      /* Start the ADX stream, with looping enabled */
     
-    if( adx_dec( "/rd/assets/sound/output.adx", 1 ) < 1 ){
-        printf("Invalid ADX file\n");
-    } else {
-        while( snddrv.drv_status == SNDDRV_STATUS_NULL ){
-            thd_pass(); 
-        }
-        setVolume();
-    }
+    snd_stream_init();
+    wav_init();
 
+    bgm = wav_create("/rd/assets/sound/bgm.adpcm", 1);
+    wav_volume(bgm, 255);
+    wav_play(bgm);
 
     Game game = Game();
 
@@ -103,7 +88,7 @@ int main(){
     }
 
     printf("Finishing - Cleaning up\n");
-    adx_stop();
+    wav_stop(bgm);
     snd_stream_shutdown();
     printf("Finished - Cleaning up\n");
 
