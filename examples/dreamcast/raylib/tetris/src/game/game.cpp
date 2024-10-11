@@ -2,8 +2,6 @@
 #include "../constants/constants.h"
 #include <random>
 #include <kos.h>
-#include <dc/maple.h>
-#include <dc/maple/controller.h>
 
 // The below moves are in numpad notation because I can't understand them otherwise.
 const int Game::moves[15][2] = {
@@ -73,77 +71,76 @@ void Game::DrawNext(int offsetX, int offsetY) {
 }
 
 void Game::HandleInput() {
-    if ((cont = maple_enum_type(0, MAPLE_FUNC_CONTROLLER)) != NULL) {
-        state = (cont_state_t *)maple_dev_status(cont);
+    int gamepad = 0;
+    if (IsGamepadAvailable(gamepad)) {
 
-        if (state == NULL) {
-            return;
-        }
-
-        uint16_t just_pressed = state->buttons & ~prev_buttons;
 
         double currentTime = GetTime();  
-        prev_buttons = state->buttons; 
 
-        switch (just_pressed) {
-            case CONT_START:
-                if(gameOver){
-                    gameOver = false;
-                    Reset();
-                }
-                break;
-
-            case CONT_DPAD_LEFT:
-                MoveBlockLeft();
-                lastHeldMoveTime = currentTime + 0.1;
-                break;
-
-            case CONT_DPAD_RIGHT:
-                MoveBlockRight();
-                lastHeldMoveTime = currentTime + 0.1;
-                break;
-
-            case CONT_DPAD_DOWN:
-                MoveBlockDown();
-                UpdateScore(0, 1);
-                lastHeldMoveTime = currentTime;
-                break;
-            
-            case CONT_DPAD_UP:
-                HardDrop();
-                break;
-
-            case CONT_X:
-                RotateBlock(false);
-                break;
-            
-            case CONT_B:
-                RotateBlock(true);
-                break;
-
-            default:
-                break;
+        // GAMEPAD_BUTTON_MIDDLE_RIGHT is the start button on dreamcast.
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_MIDDLE_RIGHT)) {
+            if (gameOver) {
+                gameOver = false;
+                Reset();
+            }
         }
 
-        if (prev_buttons & (CONT_DPAD_LEFT | CONT_DPAD_RIGHT | CONT_DPAD_DOWN)) {
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
+            MoveBlockLeft();
+            lastHeldMoveTime = currentTime + 0.1;
+        }
+
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
+            MoveBlockRight();
+            lastHeldMoveTime = currentTime + 0.1;
+        }
+
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+            MoveBlockDown();
+            UpdateScore(0, 1); 
+            lastHeldMoveTime = currentTime;
+        }
+
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_LEFT_FACE_UP)) {
+            HardDrop();
+        }
+
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_LEFT)) {
+            RotateBlock(false);
+        }
+
+        if (IsGamepadButtonPressed(gamepad, GAMEPAD_BUTTON_RIGHT_FACE_RIGHT)) {
+            RotateBlock(true);
+        }
+
+        if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT) ||
+            IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT) ||
+            IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
+
             if (currentTime - lastHeldMoveTime >= moveThreshold) {
-                if (prev_buttons & CONT_DPAD_LEFT) {
+
+                if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_LEFT)) {
                     MoveBlockLeft();
                 }
-                if (prev_buttons & CONT_DPAD_RIGHT) {
+
+                if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_RIGHT)) {
                     MoveBlockRight();
                 }
-                if (prev_buttons & CONT_DPAD_DOWN) {
+
+                if (IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_FACE_DOWN)) {
                     MoveBlockDown();
                     UpdateScore(0, 1);
                 }
+
                 lastHeldMoveTime = currentTime;
             }
         }
-        
-        int leftTrigger = state->ltrig;
-        if (leftTrigger > 10){
-            if(!canHoldBlock) return;
+
+        // Currently doesnt seem to be working with IsGamepadButtonDown(gamepad, GAMEPAD_BUTTON_LEFT_TRIGGER_1).
+          // This should be updated to use that method when it is available in raylib for dreamcast.
+        float leftTriggerValue = GetGamepadAxisMovement(gamepad, GAMEPAD_AXIS_LEFT_TRIGGER);
+        if (leftTriggerValue > 0.5) {
+            if (!canHoldBlock) return;
             vmuManager.displayImage(currentBlock.vmuIcon);
             HoldBlock();
         }

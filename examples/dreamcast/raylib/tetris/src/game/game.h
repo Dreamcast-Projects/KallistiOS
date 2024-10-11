@@ -41,8 +41,6 @@ class Game{
         Grid grid;
         uint16_t prev_buttons;
         uint16_t prev_triggers;
-        maple_device_t *cont;
-        cont_state_t *state;
         const double moveThreshold = 0.075;
         const double timerGraceBig = 2;
         const double timerGraceSmall = 0.4;
