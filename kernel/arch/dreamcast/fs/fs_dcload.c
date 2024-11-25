@@ -401,6 +401,19 @@ static int dcload_fcntl(void *h, int cmd, va_list ap) {
     return rv;
 }
 
+static int dcload_rewinddir(void *h) {
+    int rv = -1;
+    uint32_t hnd = (uint32_t)h;
+
+    spinlock_lock(&dcload_lock);
+
+    rv = dclsc(DCLOAD_REWINDDIR, hnd);
+
+    spinlock_unlock(&dcload_lock);
+
+    return rv;
+}
+
 /* Pull all that together */
 static vfs_handler_t vh = {
     /* Name handler */
@@ -439,14 +452,14 @@ static vfs_handler_t vh = {
     NULL,               /* tell64 */
     NULL,               /* total64 */
     NULL,               /* readlink */
-    NULL,               /* rewinddir */
+    dcload_rewinddir,
     NULL                /* fstat */
 };
 
 /* We have to provide a minimal interface in case dcload usage is
    disabled through init flags. */
-static int never_detected(void) {
-    return 0;
+static bool never_detected(void) {
+    return false;
 }
 
 dbgio_handler_t dbgio_dcload = {
@@ -462,12 +475,9 @@ dbgio_handler_t dbgio_dcload = {
     NULL
 };
 
-int fs_dcload_detected(void) {
+bool fs_dcload_detected(void) {
     /* Check for dcload */
-    if(*DCLOADMAGICADDR == DCLOADMAGICVALUE)
-        return 1;
-    else
-        return 0;
+    return (*DCLOADMAGICADDR == DCLOADMAGICVALUE);
 }
 
 static int *dcload_wrkmem = NULL;

@@ -553,16 +553,16 @@ static int dcls_stat(vfs_handler_t *vfs, const char *fn, struct stat *rv,
 }
 
 /* dbgio interface */
-static int dcls_detected(void) {
+static bool dcls_detected(void) {
     return initted > 0;
 }
 
-static int dcls_fake_init(void) {
-    return 0;
+static bool dcls_fake_init(void) {
+    return true;
 }
 
-static int dcls_fake_shutdown(void) {
-    return 0;
+static bool dcls_fake_shutdown(void) {
+    return true;
 }
 
 static int dcls_writebuf(const uint8 *buf, int len, int xlat) {

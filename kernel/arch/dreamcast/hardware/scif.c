@@ -154,7 +154,7 @@ static void scif_data_irq(irq_t src, irq_context_t *cxt, void *data) {
 
 /* Are we using IRQs? */
 static int scif_irq_usage = 0;
-int scif_set_irq_usage(int on) {
+bool scif_set_irq_usage(bool on) {
     scif_irq_usage = on;
 
     /* Clear out the buffer in any case */
@@ -181,23 +181,23 @@ int scif_set_irq_usage(int on) {
         irq_set_handler(EXC_SCIF_RXI, NULL, NULL);
     }
 
-    return 0;
+    return true;
 }
 
 /* We are always detected, though we might end up realizing there's no
    cable connected later... */
-int scif_detected(void) {
-    return 1;
+bool scif_detected(void) {
+    return true;
 }
 
 /* We use this for the dbgio interface because we always init SCIF. */
-int scif_init_fake(void) {
-    return 0;
+bool scif_init_fake(void) {
+    return true;
 }
 
 /* Initialize the SCIF port; */
 /* recv trigger to 1 byte */
-int scif_init(void) {
+bool scif_init(void) {
     int i;
     unsigned char scbrr2 = 0;
     unsigned short scsmr2 = 0;
@@ -205,7 +205,7 @@ int scif_init(void) {
     /*  If dcload-serial is active, then do nothing here, or we'll
         screw that up. */
     if(dcload_type == DCLOAD_TYPE_SER)
-        return 0;
+        return true;
 
     /* Disable interrupts, transmit/receive,
        and use internal or external clock */
@@ -262,12 +262,12 @@ int scif_init(void) {
     for(i = 0; i < 800000; i++)
         __asm__("nop");
 
-    return 0;
+    return true;
 }
 
-int scif_shutdown(void) {
+bool scif_shutdown(void) {
     scif_set_irq_usage(DBGIO_MODE_POLLED);
-    return 0;
+    return true;
 }
 
 /* Read one char from the serial port (-1 if nothing to read) */
@@ -334,12 +334,12 @@ int scif_write(int c) {
 }
 
 /* Flush all FIFO'd bytes out of the serial port buffer */
-int scif_flush(void) {
+bool scif_flush(void) {
     int timeout = 800000;
 
     if(!serial_enabled) {
         errno = EIO;
-        return -1;
+        return false;
     }
 
     SCFSR2 &= 0xbf;
@@ -350,12 +350,12 @@ int scif_flush(void) {
     if(timeout <= 0) {
         serial_enabled = 0;
         errno = EIO;
-        return -1;
+        return false;
     }
 
     SCFSR2 &= 0xbf;
 
-    return 0;
+    return true;
 }
 
 /* Send an entire buffer */
@@ -382,7 +382,7 @@ int scif_write_buffer(const uint8 *data, int len, int xlat) {
         i += rv;
     }
 
-    if(scif_flush() < 0)
+    if(!scif_flush())
         return -1;
 
     return i;
