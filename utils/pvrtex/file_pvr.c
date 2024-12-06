@@ -20,7 +20,7 @@ void fPvrWrite(const PvrTexEncoder *pte, const char *outfname) {
 	assert(pte->pvr_tex);
 	assert(outfname);
 
-	FILE *f = fopen(outfname, "w");
+	FILE *f = fopen(outfname, "wb");
 	assert(f);
 
 	//Write header
@@ -33,32 +33,32 @@ void fPvrWrite(const PvrTexEncoder *pte, const char *outfname) {
 		unsigned int idxcnt = pte->w * pte->h / 4;
 		if (pteHasMips(pte))
 			idxcnt = idxcnt * 4/3 + 1;
-	
+
 		if (pte->auto_small_vq) {
 			//We only generate real small VQ textures when small_vq is set
 			pvrfmt = FILE_PVR_SMALL_VQ;
 			cb_size = pte->codebook_size * 8;
 		}
-	
+
 		if (pteIsPalettized(pte))
 			ErrorExit(".PVR format does not support compressed palettized textures\n");
 		if (pte->w != pte->h)
 			ErrorExit(".PVR format does not support non-square compressed textures\n");
-	
+
 		chunksize += idxcnt+cb_size;
 	} else {
 		chunksize += CalcTextureSize(pte->w, pte->h, (ptPixelFormat)pte->pixel_format, pteHasMips(pte), 0, 0);
-	
+
 		if (pte->pixel_format == PTE_PALETTE_8B) {
 			pvrfmt = FILE_PVR_8BPP;
 		} else if (pte->pixel_format == PTE_PALETTE_4B) {
 			pvrfmt = FILE_PVR_4BPP;
 		}
-	
+
 		//.PVR does not store first 4 padding bytes of uncompressed mipmapped texture
 		if (pteHasMips(pte))
 			chunksize -= 4;
-	
+
 		if (pte->w != pte->h) {
 			pvrfmt = FILE_PVR_RECT;
 			assert(!pteHasMips(pte));
